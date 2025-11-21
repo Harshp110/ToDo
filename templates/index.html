@@ -1,0 +1,209 @@
+{% extends "base.html" %}
+{% block title %}My Tasks{% endblock %}
+
+{% block head %}
+<style>
+.todo-card {
+    background: var(--card);
+    border-radius: 10px;
+    padding: 15px;
+    margin-bottom: 10px;
+    transition: transform 0.15s ease;
+}
+.todo-card:hover {
+    transform: translateY(-2px);
+}
+
+.badge-priority-Low { background: #3fa34d; }
+.badge-priority-Medium { background: #f0ad4e; }
+.badge-priority-High { background: #d9534f; }
+
+.subtask-box {
+    margin-left: 30px;
+}
+</style>
+
+<!-- Sortable JS for drag-drop -->
+<script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
+{% endblock %}
+
+{% block content %}
+
+<div class="row">
+    <!-- LEFT SIDE: ADD TASK -->
+    <div class="col-md-4">
+        <div class="card p-3 shadow-sm">
+            <h5 class="mb-3">Add Task</h5>
+
+            <form method="POST">
+
+                <input class="form-control mb-2" name="title" placeholder="Title" required>
+                <textarea class="form-control mb-2" name="desc" placeholder="Description" required></textarea>
+
+                <label class="small">Priority</label>
+                <select class="form-select mb-2" name="priority">
+                    <option>Low</option>
+                    <option selected>Medium</option>
+                    <option>High</option>
+                </select>
+
+                <label class="small">Category</label>
+                <select class="form-select mb-2" name="category">
+                    {% for c in categories %}<option>{{c}}</option>{% endfor %}
+                </select>
+
+                <label class="small">Due Date</label>
+                <input class="form-control mb-2" name="due_date" type="date">
+
+                <label class="small">Reminder</label>
+                <input class="form-control mb-2" name="reminder_time" type="datetime-local">
+
+                <label class="small">Minutes Before Reminder</label>
+                <input class="form-control mb-2" name="reminder_minutes_before" type="number" min="0" value="0">
+
+                <button class="btn btn-success w-100">Add</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- RIGHT SIDE: TASK LIST -->
+    <div class="col-md-8">
+        <div class="d-flex gap-2 mb-3">
+
+            <input id="searchBox" class="form-control" placeholder="Search tasks">
+
+            <select id="filterCategory" class="form-select w-auto">
+                <option value="">All</option>
+                {% for c in categories %}
+                <option value="{{c}}">{{c}}</option>
+                {% endfor %}
+            </select>
+
+            <button id="clearBtn" class="btn btn-outline-secondary">Clear</button>
+        </div>
+
+        <ul id="todoList" class="list-group">
+
+            {% for todo in allTodo %}
+            <li class="list-group-item todo-row"
+                data-sno="{{ todo.sno }}"
+                data-title="{{ todo.title|lower }}"
+                data-desc="{{ todo.desc|lower }}"
+                data-cat="{{ todo.category }}">
+
+                <!-- Main Row -->
+                <div class="d-flex justify-content-between">
+
+                    <div class="d-flex">
+                        <input type="checkbox" class="form-check-input me-3 toggle"
+                        {% if todo.completed %}checked{% endif %}>
+
+                        <div>
+                            <div class="fw-bold">{{ todo.title }}</div>
+                            <div class="text-muted small">{{ todo.desc }}</div>
+
+                            <div class="mt-1 small">
+                                <span class="badge badge-priority-{{ todo.priority }}">{{ todo.priority }}</span>
+                                <span class="badge bg-secondary">{{ todo.category }}</span>
+
+                                {% if todo.due_date %}
+                                <span class="text-muted ms-2">Due: {{ todo.due_date }}</span>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+
+                    <div>
+                        <a href="/update/{{ todo.sno }}" class="btn btn-sm btn-primary mb-1">Edit</a>
+                        <a href="/delete/{{ todo.sno }}" class="btn btn-sm btn-danger mb-1">Delete</a>
+                    </div>
+                </div>
+
+                <!-- Subtasks Section -->
+                <div class="subtask-box mt-2">
+                    <form action="/subtask/add/{{ todo.sno }}" method="POST" class="d-flex">
+                        <input name="subtask_title" class="form-control form-control-sm me-2" placeholder="Add subtask">
+                        <button class="btn btn-sm btn-outline-success">+</button>
+                    </form>
+
+                    <ul class="mt-2">
+                        {% for st in todo.subtasks %}
+                        <li class="small d-flex justify-content-between">
+                            <div>
+                                <input type="checkbox" class="subtoggle" data-id="{{ st.id }}"
+                                {% if st.done %}checked{% endif %}>
+                                <span class="{% if st.done %}text-decoration-line-through{% endif %}">
+                                    {{ st.title }}
+                                </span>
+                            </div>
+                            <a href="/subtask/delete/{{ st.id }}" class="text-danger small">x</a>
+                        </li>
+                        {% endfor %}
+                    </ul>
+                </div>
+
+            </li>
+            {% endfor %}
+        </ul>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+// Search + Filter
+const searchBox = document.getElementById("searchBox");
+const filterCat = document.getElementById("filterCategory");
+const clearBtn = document.getElementById("clearBtn");
+
+function applyFilters() {
+    let q = searchBox.value.toLowerCase();
+    let c = filterCat.value;
+
+    document.querySelectorAll(".todo-row").forEach(li => {
+        let match = (li.dataset.title.includes(q) ||
+                     li.dataset.desc.includes(q)) &&
+                    (!c || li.dataset.cat === c);
+        li.style.display = match ? "" : "none";
+    });
+}
+
+searchBox.addEventListener("input", applyFilters);
+filterCat.addEventListener("change", applyFilters);
+clearBtn.addEventListener("click", () => {
+    searchBox.value = "";
+    filterCat.value = "";
+    applyFilters();
+});
+
+// Toggle completed
+document.querySelectorAll(".toggle").forEach(cb => {
+    cb.addEventListener("change", async () => {
+        const sno = cb.closest("li").dataset.sno;
+        await fetch("/toggle/" + sno, { method: "POST" });
+    });
+});
+
+// Subtask toggle
+document.querySelectorAll(".subtoggle").forEach(cb => {
+    cb.addEventListener("change", async () => {
+        const id = cb.dataset.id;
+        await fetch("/subtask/toggle/" + id, { method: "POST" });
+    });
+});
+
+// DRAG & DROP
+new Sortable(todoList, {
+    animation: 150,
+    onEnd: () => {
+        const order = [...document.querySelectorAll(".todo-row")].map(li => li.dataset.sno);
+        fetch("/reorder", {
+            method: "POST",
+            headers: {"Content-Type": "application/json"},
+            body: JSON.stringify({ order })
+        });
+    }
+});
+</script>
+{% endblock %}

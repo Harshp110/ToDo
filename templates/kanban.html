@@ -1,0 +1,126 @@
+{% extends "base.html" %}
+{% block title %}Kanban Board{% endblock %}
+
+{% block content %}
+
+<h2 class="mb-4 text-center">Kanban Board</h2>
+
+<div class="row" id="kanbanBoard">
+
+    <!-- TO DO -->
+    <div class="col-md-4">
+        <div class="card shadow-sm">
+            <div class="card-header bg-danger text-white">To Do</div>
+            <ul id="todoCol" class="list-group kanban-col" data-status="todo">
+                {% for t in todos if t.status == 'todo' %}
+                    <li class="list-group-item draggable"
+                        draggable="true"
+                        data-sno="{{ t.sno }}">
+                        <strong>{{ t.title }}</strong><br>
+                        <small class="text-muted">{{ t.desc }}</small>
+                    </li>
+                {% endfor %}
+            </ul>
+        </div>
+    </div>
+
+    <!-- IN PROGRESS -->
+    <div class="col-md-4">
+        <div class="card shadow-sm">
+            <div class="card-header bg-warning">In Progress</div>
+            <ul id="progressCol" class="list-group kanban-col" data-status="inprogress">
+                {% for t in todos if t.status == 'inprogress' %}
+                    <li class="list-group-item draggable"
+                        draggable="true"
+                        data-sno="{{ t.sno }}">
+                        <strong>{{ t.title }}</strong><br>
+                        <small class="text-muted">{{ t.desc }}</small>
+                    </li>
+                {% endfor %}
+            </ul>
+        </div>
+    </div>
+
+    <!-- DONE -->
+    <div class="col-md-4">
+        <div class="card shadow-sm">
+            <div class="card-header bg-success text-white">Done</div>
+            <ul id="doneCol" class="list-group kanban-col" data-status="done">
+                {% for t in todos if t.status == 'done' %}
+                    <li class="list-group-item draggable"
+                        draggable="true"
+                        data-sno="{{ t.sno }}">
+                        <strong>{{ t.title }}</strong><br>
+                        <small class="text-muted">{{ t.desc }}</small>
+                    </li>
+                {% endfor %}
+            </ul>
+        </div>
+    </div>
+</div>
+
+<style>
+    .kanban-col {
+        min-height: 300px;
+        padding: 10px;
+        border: 2px dashed #ddd;
+    }
+    .draggable {
+        cursor: grab;
+        transition: 0.2s;
+    }
+    .drag-over {
+        background: #d3e3ff !important;
+        border-radius: 8px;
+    }
+</style>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // Enable Drag & Drop
+    const draggables = document.querySelectorAll(".draggable");
+    const columns = document.querySelectorAll(".kanban-col");
+
+    draggables.forEach(item => {
+        item.addEventListener('dragstart', () => {
+            item.classList.add('dragging');
+        });
+        item.addEventListener('dragend', () => {
+            item.classList.remove('dragging');
+        });
+    });
+
+    columns.forEach(col => {
+        col.addEventListener('dragover', e => {
+            e.preventDefault();
+            col.classList.add('drag-over');
+            const dragging = document.querySelector('.dragging');
+            col.appendChild(dragging);
+        });
+
+        col.addEventListener('dragleave', () => {
+            col.classList.remove('drag-over');
+        });
+
+        col.addEventListener('drop', async () => {
+            col.classList.remove('drag-over');
+            const dragging = document.querySelector('.dragging');
+            const sno = dragging.dataset.sno;
+            const status = col.dataset.status;
+
+            // Update status in backend
+            await fetch("/kanban/update", {
+                method: "POST",
+                headers: {"Content-Type": "application/json"},
+                body: JSON.stringify({
+                    sno: sno,
+                    status: status,
+                    position: 0
+                })
+            });
+        });
+    });
+</script>
+{% endblock %}

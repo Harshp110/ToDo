@@ -1,0 +1,73 @@
+{% extends "base.html" %}
+{% block title %}Update Task{% endblock %}
+
+{% block content %}
+
+<div class="container">
+    <div class="card p-4 shadow-sm" style="max-width: 600px; margin: auto;">
+
+        <h3 class="mb-3">Update Task</h3>
+
+        <form method="POST">
+
+            <!-- Title -->
+            <label class="small">Title</label>
+            <input class="form-control mb-2"
+                   name="title"
+                   value="{{ todo.title }}"
+                   required>
+
+            <!-- Description -->
+            <label class="small">Description</label>
+            <textarea class="form-control mb-2"
+                      name="desc"
+                      required>{{ todo.desc }}</textarea>
+
+            <!-- Priority -->
+            <label class="small">Priority</label>
+            <select class="form-select mb-2" name="priority">
+                <option {% if todo.priority=='Low' %}selected{% endif %}>Low</option>
+                <option {% if todo.priority=='Medium' %}selected{% endif %}>Medium</option>
+                <option {% if todo.priority=='High' %}selected{% endif %}>High</option>
+            </select>
+
+            <!-- Category -->
+            <label class="small">Category</label>
+            <select class="form-select mb-2" name="category">
+                <option {% if todo.category=='General' %}selected{% endif %}>General</option>
+                <option {% if todo.category=='Work' %}selected{% endif %}>Work</option>
+                <option {% if todo.category=='Study' %}selected{% endif %}>Study</option>
+                <option {% if todo.category=='Personal' %}selected{% endif %}>Personal</option>
+                <option {% if todo.category=='Urgent' %}selected{% endif %}>Urgent</option>
+            </select>
+
+            <!-- Due Date -->
+            <label class="small">Due Date</label>
+            <input class="form-control mb-2"
+                   type="date"
+                   name="due_date"
+                   value="{{ todo.due_date }}">
+
+            <!-- Reminder Time -->
+            <label class="small">Reminder Time</label>
+            <input class="form-control mb-2"
+                   type="datetime-local"
+                   name="reminder_time"
+                   value="{{ todo.reminder_time|replace(' ', 'T') if todo.reminder_time }}">
+
+            <!-- Minutes Before Reminder -->
+            <label class="small">Minutes Before Reminder</label>
+            <input class="form-control mb-3"
+                   type="number"
+                   name="reminder_minutes_before"
+                   min="0"
+                   value="{{ todo.reminder_minutes_before }}">
+
+            <button class="btn btn-primary w-100">Save Changes</button>
+        </form>
+
+        <a href="/" class="btn btn-outline-secondary mt-3 w-100">Back</a>
+    </div>
+</div>
+
+{% endblock %}
